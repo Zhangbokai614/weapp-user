@@ -60,32 +60,9 @@ func (c *Controller) RegisterRouter(r gin.IRouter) {
 		log.Fatal(err)
 	}
 
-	r.POST("/modify/active", c.modifyAdminActive)
-}
-
-func (c *Controller) modifyAdminActive(ctx *gin.Context) {
-	var (
-		admin struct {
-			CheckID     uint32 `json:"check_id"    binding:"required"`
-			CheckActive bool   `json:"check_active"`
-		}
-	)
-
-	err := ctx.ShouldBind(&admin)
-	if err != nil {
-		ctx.Error(err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest})
-		return
-	}
-
-	err = mysql.ModifyAdminActive(c.db, admin.CheckID, admin.CheckActive)
-	if err != nil {
-		ctx.Error(err)
-		ctx.JSON(http.StatusBadGateway, gin.H{"status": http.StatusBadGateway})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{"status": http.StatusOK})
+	r.GET("/info", c.getUserInfo)
+	r.POST("/modify/active", c.modifyUserActive)
+	r.POST("/modify/info", c.modifyUserInfo)
 }
 
 //Login JWT validation
@@ -127,6 +104,7 @@ func (c *Controller) Login(ctx *gin.Context) (uint32, error) {
 		}
 	} else {
 		if err := mysql.UpdateSessionKey(c.db, id, wx.SessionKey); err != nil {
+			fmt.Println(2)
 			return 0, err
 		}
 	}
@@ -146,4 +124,77 @@ func BuildWxLoginUrl(code string) string {
 	appid := config.GetString("wx.appid")
 	secret := config.GetString("wx.secret")
 	return fmt.Sprintf("https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code", appid, secret, code)
+}
+
+func (c *Controller) modifyUserActive(ctx *gin.Context) {
+	var req struct {
+		CheckID     uint32 `json:"check_id"    binding:"required"`
+		CheckActive bool   `json:"check_active"`
+	}
+
+	err := ctx.ShouldBind(&req)
+	if err != nil {
+		ctx.Error(err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest})
+		return
+	}
+
+	err = mysql.ModifyUserActive(c.db, req.CheckID, req.CheckActive)
+	if err != nil {
+		ctx.Error(err)
+		ctx.JSON(http.StatusBadGateway, gin.H{"status": http.StatusBadGateway})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"status": http.StatusOK})
+}
+
+func (c *Controller) modifyUserInfo(ctx *gin.Context) {
+	var req struct {
+		NickName string `json:"nick_name,omitempty"`
+		Avatar   string `json:"avatar,omitempty"`
+		Gender   int    `json:"gender,omitempty"`
+		City     string `json:"city,omitempty"`
+		Province string `json:"province,omitempty"`
+		Country  string `json:"country,omitempty"`
+	}
+
+	if err := ctx.ShouldBind(&req); err != nil {
+		ctx.Error(err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest})
+		return
+	}
+
+	id, err := c.GetID(ctx)
+	if err != nil {
+		ctx.Error(err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest})
+		return
+	}
+
+	if err := mysql.ModifyUserInfo(c.db, id, req.NickName, req.Avatar, req.Gender); err != nil {
+		ctx.Error(err)
+		ctx.JSON(http.StatusBadGateway, gin.H{"status": http.StatusBadGateway})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"status": http.StatusOK})
+}
+
+func (c *Controller) getUserInfo(ctx *gin.Context) {
+	id, err := c.GetID(ctx)
+	if err != nil {
+		ctx.Error(err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest})
+		return
+	}
+
+	info, err := mysql.GetUserInfo(c.db, id)
+	if err != nil {
+		ctx.Error(err)
+		ctx.JSON(http.StatusBadGateway, gin.H{"status": http.StatusBadGateway})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"status": http.StatusOK, "info": info})
 }
