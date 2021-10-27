@@ -2,7 +2,7 @@ package controller
 
 import (
 	jwt "github.com/appleboy/gin-jwt/v2"
-	"github.com/dovics/wx-demo/pkg/user/model/mysql"
+	"github.com/dovics/wx-demo/pkg/user/model"
 
 	"net/http"
 	"time"
@@ -33,7 +33,7 @@ func (c *Controller) CheckActive() func(ctx *gin.Context) {
 			return
 		}
 
-		active, err := mysql.IsActive(c.db, a)
+		active, err := model.IsActive(c.db, a)
 		if err != nil {
 			_ = ctx.AbortWithError(http.StatusConflict, err)
 			return

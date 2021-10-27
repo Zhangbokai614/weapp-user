@@ -11,7 +11,7 @@ import (
 
 	jwt "github.com/appleboy/gin-jwt/v2"
 
-	"github.com/dovics/wx-demo/pkg/user/model/mysql"
+	"github.com/dovics/wx-demo/pkg/user/model"
 	"github.com/dovics/wx-demo/util/config"
 	"github.com/gin-gonic/gin"
 )
@@ -50,12 +50,12 @@ func (c *Controller) RegisterRouter(r gin.IRouter) {
 	if r == nil {
 		log.Fatal("[InitRouter]: server is nil")
 	}
-	err := mysql.CreateDatabase(c.db)
+	err := model.CreateDatabase(c.db)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = mysql.CreateTable(c.db)
+	err = model.CreateTable(c.db)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -91,20 +91,20 @@ func (c *Controller) Login(ctx *gin.Context) (uint32, error) {
 		return 0, err
 	}
 
-	id, err := mysql.IsExist(c.db, wx.OpenID)
+	id, err := model.IsExist(c.db, wx.OpenID)
 	if err != sql.ErrNoRows && err != nil {
 		return 0, err
 	}
 
 	if id == 0 {
-		id, err = mysql.CreateUser(c.db, wx.OpenID, wx.SessionKey)
+		id, err = model.CreateUser(c.db, wx.OpenID, wx.SessionKey)
 		if err != nil {
-			fmt.Println(1)
+			log.Println("create user fail: ", err)
 			return 0, err
 		}
 	} else {
-		if err := mysql.UpdateSessionKey(c.db, id, wx.SessionKey); err != nil {
-			fmt.Println(2)
+		if err := model.UpdateSessionKey(c.db, id, wx.SessionKey); err != nil {
+			log.Println("update session key fail: ", err)
 			return 0, err
 		}
 	}
@@ -139,7 +139,7 @@ func (c *Controller) modifyUserActive(ctx *gin.Context) {
 		return
 	}
 
-	err = mysql.ModifyUserActive(c.db, req.CheckID, req.CheckActive)
+	err = model.ModifyUserActive(c.db, req.CheckID, req.CheckActive)
 	if err != nil {
 		ctx.Error(err)
 		ctx.JSON(http.StatusBadGateway, gin.H{"status": http.StatusBadGateway})
@@ -172,7 +172,7 @@ func (c *Controller) modifyUserInfo(ctx *gin.Context) {
 		return
 	}
 
-	if err := mysql.ModifyUserInfo(c.db, id, req.NickName, req.Avatar, req.Gender); err != nil {
+	if err := model.ModifyUserInfo(c.db, id, req.NickName, req.Avatar, req.Gender); err != nil {
 		ctx.Error(err)
 		ctx.JSON(http.StatusBadGateway, gin.H{"status": http.StatusBadGateway})
 		return
@@ -189,7 +189,7 @@ func (c *Controller) getUserInfo(ctx *gin.Context) {
 		return
 	}
 
-	info, err := mysql.GetUserInfo(c.db, id)
+	info, err := model.GetUserInfo(c.db, id)
 	if err != nil {
 		ctx.Error(err)
 		ctx.JSON(http.StatusBadGateway, gin.H{"status": http.StatusBadGateway})

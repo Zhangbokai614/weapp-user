@@ -1,9 +1,14 @@
-package mysql
+package model
 
 import (
 	"database/sql"
 	"errors"
 	"fmt"
+)
+
+const (
+	DBName    = "user"
+	TableName = "user"
 )
 
 const (
@@ -18,11 +23,6 @@ const (
 	mysqlUserGetIsActive
 )
 
-const (
-	DBName    = "user"
-	TableName = "user"
-)
-
 var (
 	errInvalidMysql = errors.New("affected 0 rows")
 
@@ -30,7 +30,7 @@ var (
 		fmt.Sprintf(`CREATE DATABASE IF NOT EXISTS %s ;`, DBName),
 		fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s.%s (
 			id		    	BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-			openid     		VARCHAR(20) UNIQUE NOT NULL,
+			openid     		VARCHAR(100) UNIQUE NOT NULL,
 			session_key 	VARCHAR(100) NOT NULL,
 			nick_name 		VARCHAR(100) NOT NULL DEFAULT " ",
 			avatar			VARCHAR(512) NOT NULL DEFAULT " ",

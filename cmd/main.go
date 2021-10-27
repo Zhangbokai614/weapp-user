@@ -6,6 +6,7 @@ import (
 	"log"
 
 	c "github.com/dovics/wx-demo/config"
+	goods "github.com/dovics/wx-demo/pkg/goods/controller"
 	user "github.com/dovics/wx-demo/pkg/user/controller"
 	"github.com/dovics/wx-demo/util/config"
 	"github.com/gin-gonic/gin"
@@ -18,6 +19,7 @@ func init() {
 
 var (
 	userRouterGroup        = "/api/v1/user"
+	goodsRouterGroup       = "/api/v1/goods"
 	userRouterGroupLogin   = userRouterGroup + "/login"
 	userRouterRefreshToken = userRouterGroup + "/refresh_token"
 )
@@ -41,12 +43,15 @@ func main() {
 	router := gin.Default()
 
 	userController := user.New(dbConn)
+	goodsController := goods.New(dbConn)
 	router.POST(userRouterGroupLogin, userController.JWT.LoginHandler)
 	router.POST(userRouterRefreshToken, userController.JWT.RefreshHandler)
 
 	router.Use(userController.JWT.MiddlewareFunc())
 	router.Use(userController.CheckActive())
 	userController.RegisterRouter(router.Group(userRouterGroup))
+	goodsController.RegisterRouter(router.Group(goodsRouterGroup))
+
 	fmt.Println("port" + config.GetString("app.port"))
 	log.Fatal(router.Run("0.0.0.0:" + config.GetString("app.port")))
 }
