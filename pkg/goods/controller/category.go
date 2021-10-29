@@ -34,14 +34,6 @@ func (c *CatagoryController) RegisterRouter(r gin.IRouter) {
 		log.Fatal(err)
 	}
 
-	if err := model.CreateSkuTable(c.db); err != nil {
-		log.Fatal(err)
-	}
-
-	if err := model.CreateSpecTable(c.db); err != nil {
-		log.Fatal(err)
-	}
-
 	r.GET("/all", c.getAll)
 	r.POST("/insert", c.insert)
 }

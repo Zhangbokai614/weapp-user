@@ -13,15 +13,12 @@ import (
 
 	"github.com/dovics/wx-demo/pkg/user/model"
 	"github.com/dovics/wx-demo/util/config"
+	"github.com/dovics/wx-demo/util/user"
 	"github.com/gin-gonic/gin"
 )
 
 var (
-	errActive          = errors.New("the user is not activated")
-	errUserIDNotExists = errors.New("get Admin ID is not exists")
-	errUserIDNotValid  = func(value interface{}) error {
-		return fmt.Errorf("get Admin ID is not valid. Is %s", value)
-	}
+	errActive = errors.New("the user is not activated")
 )
 
 // Controller external service interface
@@ -165,7 +162,7 @@ func (c *Controller) modifyUserInfo(ctx *gin.Context) {
 		return
 	}
 
-	id, err := c.GetID(ctx)
+	id, err := user.GetID(ctx)
 	if err != nil {
 		ctx.Error(err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest})
@@ -182,7 +179,7 @@ func (c *Controller) modifyUserInfo(ctx *gin.Context) {
 }
 
 func (c *Controller) getUserInfo(ctx *gin.Context) {
-	id, err := c.GetID(ctx)
+	id, err := user.GetID(ctx)
 	if err != nil {
 		ctx.Error(err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest})

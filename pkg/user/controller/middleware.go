@@ -3,6 +3,7 @@ package controller
 import (
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/dovics/wx-demo/pkg/user/model"
+	"github.com/dovics/wx-demo/util/user"
 
 	"net/http"
 	"time"
@@ -10,24 +11,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (c *Controller) GetID(ctx *gin.Context) (uint32, error) {
-	id, ok := ctx.Get("userID")
-	if !ok {
-		return 0, errUserIDNotExists
-	}
-
-	v, ok := id.(float64)
-	if !ok {
-		return 0, errUserIDNotValid(id)
-	}
-
-	return uint32(v), nil
-}
-
 //CheckActive middleware that checks the active
 func (c *Controller) CheckActive() func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
-		a, err := c.GetID(ctx)
+		a, err := user.GetID(ctx)
 		if err != nil {
 			_ = ctx.AbortWithError(http.StatusBadRequest, err)
 			return

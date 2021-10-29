@@ -36,8 +36,8 @@ func CreateSpecTable(db *sql.DB) error {
 	return nil
 }
 
-func InsertSpec(db *sql.DB, spuID uint32, kind string, value string) error {
-	result, err := db.Exec(specSQLString[mysqlSpecInsert], spuID, kind, value)
+func TxInsertSpec(tx *sql.Tx, spuID uint32, kind string, value string) error {
+	result, err := tx.Exec(specSQLString[mysqlSpecInsert], spuID, kind, value)
 	if err != nil {
 		return err
 	}

@@ -73,6 +73,7 @@ type Spu struct {
 	Images         interface{} `json:"images,omitempty"`
 	DetailImages   interface{} `json:"detail_images,omitempty"`
 	Spec           []*Spec     `json:"spec,omitempty"`
+	Sku            []*Sku      `json:"sku,omitempty"`
 	Recommend      bool        `json:"recommend,omitempty"`
 	Active         bool        `json:"active,omitempty"`
 	CreatedAt      time.Time   `json:"created_at,omitempty"`

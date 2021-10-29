@@ -37,6 +37,14 @@ func (c *SpuController) RegisterRouter(r gin.IRouter) {
 		log.Fatal(err)
 	}
 
+	if err := model.CreateSkuTable(c.db); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := model.CreateSpecTable(c.db); err != nil {
+		log.Fatal(err)
+	}
+
 	r.GET("/info", c.getSpuInfoByKind)
 	r.GET("/info/recommend", c.getRecommendSpuInfo)
 	r.POST("/insert", c.insertSpu)
@@ -68,7 +76,15 @@ func (c *SpuController) insertSpu(ctx *gin.Context) {
 	}
 
 	for _, spec := range req.Spec {
-		if err := model.InsertSpec(c.db, spuID, spec.Kind, spec.Value); err != nil {
+		if err := model.TxInsertSpec(tx, spuID, spec.Kind, spec.Value); err != nil {
+			ctx.Error(err)
+			ctx.JSON(http.StatusBadGateway, gin.H{"status": http.StatusBadGateway})
+			return
+		}
+	}
+
+	for _, sku := range req.Sku {
+		if err := model.TxInsertSku(tx, spuID, sku.Spec, sku.Price, sku.Stock); err != nil {
 			ctx.Error(err)
 			ctx.JSON(http.StatusBadGateway, gin.H{"status": http.StatusBadGateway})
 			return
@@ -126,6 +142,7 @@ func (c *SpuController) getSpuInfoDetail(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest})
 		return
 	}
+
 	spuID, err := strconv.Atoi(spuIDStr)
 	if err != nil {
 		ctx.Error(err)
@@ -150,6 +167,13 @@ func (c *SpuController) getSpuInfoDetail(ctx *gin.Context) {
 	}
 
 	spu.Spec, err = model.TxInfoSpecBySpuID(tx, uint32(spuID))
+	if err != nil {
+		ctx.Error(err)
+		ctx.JSON(http.StatusBadGateway, gin.H{"status": http.StatusBadGateway})
+		return
+	}
+
+	spu.Sku, err = model.TxInfoSkuBySpuID(tx, uint32(spuID))
 	if err != nil {
 		ctx.Error(err)
 		ctx.JSON(http.StatusBadGateway, gin.H{"status": http.StatusBadGateway})

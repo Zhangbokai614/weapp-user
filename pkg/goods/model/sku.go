@@ -3,7 +3,6 @@ package model
 import (
 	"database/sql"
 	"fmt"
-	"time"
 )
 
 const SkuTableName = "sku"
@@ -11,6 +10,7 @@ const SkuTableName = "sku"
 const (
 	mysqlSkuCreateTable = iota
 	mysqlSkuInsert
+	mysqlSkuInfoBySpuID
 	mysqlSkuInfoBySpecAndSpuID
 )
 
@@ -26,16 +26,15 @@ var skuSQLString = []string{
 		INDEX spu_index (spu_id)
 	)  ENGINE=InnoDB AUTO_INCREMENT=1000 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;`, DBName, SkuTableName),
 	fmt.Sprintf(`INSERT INTO %s.%s (spu_id, spec, price, stock) VALUES (?, ?, ?, ?)`, DBName, SkuTableName),
-	fmt.Sprintf(`SELECT id, spu_id, spec, price, stock FROM %s.%s WHERE spu_id = ? AND spec = ?`, DBName, SkuTableName),
+	fmt.Sprintf(`SELECT id, spec, price, stock FROM %s.%s WHERE spu_id = ?`, DBName, SkuTableName),
+	fmt.Sprintf(`SELECT id, spec, price, stock FROM %s.%s WHERE spu_id = ? AND spec = ?`, DBName, SkuTableName),
 }
 
 type Sku struct {
-	ID        uint32    `json:"id,omitempty"`
-	SpuID     uint32    `json:"spu_id,omitempty"`
-	Spec      string    `json:"spec,omitempty"`
-	Price     float64   `json:"price,omitempty"`
-	Stock     uint32    `json:"stock,omitempty"`
-	CreatedAt time.Time `json:"created_at,omitempty"`
+	ID    uint32  `json:"id,omitempty"`
+	Spec  string  `json:"spec,omitempty"`
+	Price float64 `json:"price,omitempty"`
+	Stock uint32  `json:"stock,omitempty"`
 }
 
 func CreateSkuTable(db *sql.DB) error {
@@ -47,8 +46,8 @@ func CreateSkuTable(db *sql.DB) error {
 	return nil
 }
 
-func InsertSku(db *sql.DB, spuID uint32, spec string, price float64, stock uint32) error {
-	result, err := db.Exec(skuSQLString[mysqlSkuInsert], spuID, spec, price, stock)
+func TxInsertSku(tx *sql.Tx, spuID uint32, spec string, price float64, stock uint32) error {
+	result, err := tx.Exec(skuSQLString[mysqlSkuInsert], spuID, spec, price, stock)
 	if err != nil {
 		return err
 	}
@@ -62,10 +61,39 @@ func InsertSku(db *sql.DB, spuID uint32, spec string, price float64, stock uint3
 
 func InfoSkuBySpecAndSpuID(db *sql.DB, spuID uint32, spec string) (*Sku, error) {
 	var sku Sku
-	if err := db.QueryRow(skuSQLString[mysqlSkuInfoBySpecAndSpuID]).Scan(&sku.ID,
-		&sku.SpuID, &sku.Spec, &sku.Price, &sku.Stock); err != nil {
+	if err := db.QueryRow(skuSQLString[mysqlSkuInfoBySpecAndSpuID]).Scan(
+		&sku.ID, &sku.Spec, &sku.Price, &sku.Stock); err != nil {
 		return nil, err
 	}
 
 	return &sku, nil
+}
+
+func TxInfoSkuBySpuID(tx *sql.Tx, spuID uint32) ([]*Sku, error) {
+	rows, err := tx.Query(skuSQLString[mysqlSkuInfoBySpuID], spuID)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []*Sku
+	for rows.Next() {
+		var (
+			id    uint32
+			spec  string
+			price float64
+			stock uint32
+		)
+		if err := rows.Scan(&id, &spec, &price, &stock); err != nil {
+			return nil, err
+		}
+
+		result = append(result, &Sku{
+			ID:    id,
+			Spec:  spec,
+			Price: price,
+			Stock: stock,
+		})
+	}
+
+	return result, nil
 }
